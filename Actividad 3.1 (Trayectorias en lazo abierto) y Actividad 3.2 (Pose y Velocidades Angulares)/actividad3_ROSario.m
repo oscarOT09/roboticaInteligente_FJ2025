@@ -3,13 +3,17 @@ close all
 clc
 
 %%% VELOCIDADES DE REFERENCIA %%%
-% Trayectoria 1
-%u = [ ones(1,20),         zeros(1,10), ones(1,20),          zeros(1,10),  ones(1,20),         zeros(1,10),  ones(1,20),         zeros(1,10)];
-%w = [zeros(1,20), (pi/2) * ones(1,10), zeros(1,20), (pi/2) * ones(1,10), zeros(1,20), (pi/2) * ones(1,10), zeros(1,20), (pi/2) * ones(1,10)];
+trace_op = 2;
 
-% Trayectoria 2
-u = [zeros(1,10), ones(1,20),    zeros(1,10),             ones(1,20), zeros(1,10), ones(1,25), zeros(1,10), ones(1,30)];
-w = [deg2rad(30)*ones(1,10), zeros(1,20)    deg2rad(130)*ones(1,10), zeros(1,20), -deg2rad(150)*ones(1,10), zeros(1,25), -deg2rad(70)*ones(1,10), zeros(1,30)];
+if trace_op == 1
+    % Trayectoria 1
+    u = [ ones(1,20),         zeros(1,10), ones(1,20),          zeros(1,10),  ones(1,20),         zeros(1,10),  ones(1,20),         zeros(1,10)];
+    w = [zeros(1,20), (pi/2) * ones(1,10), zeros(1,20), (pi/2) * ones(1,10), zeros(1,20), (pi/2) * ones(1,10), zeros(1,20), (pi/2) * ones(1,10)];
+else
+    % Trayectoria 2
+    u = [zeros(1,10), ones(1,20),    zeros(1,10),             ones(1,20), zeros(1,10), ones(1,25), zeros(1,10), ones(1,30)];
+    w = [deg2rad(30)*ones(1,10), zeros(1,20)    deg2rad(130)*ones(1,10), zeros(1,20), -deg2rad(150)*ones(1,10), zeros(1,25), -deg2rad(70)*ones(1,10), zeros(1,30)];
+end
 
 %%% TIEMPO %%%
 N = length(u);  % Muestras
@@ -35,15 +39,15 @@ hy = zeros(1, N+1); % Posición en el punto de control (eje y) en metros (m)
 hx(1) = x1(1);  % Posición en el punto de control del robot en el eje x
 hy(1) = y1(1);  % Posición en el punto de control del robot en el eje y
 
-pose_xp = zeros(1,N);
-pose_yp = zeros(1,N);
-pose_thp = w;
 
-l = 0.09;
+l = 0.157;
 r = 0.05;
 
 w_r = (2*u + w*l)/(2*r);
 w_l = (2*u - w*l)/(2*r);
+
+pose_xp = zeros(1,N);
+pose_yp = zeros(1,N);
 
 %%% BUCLE DE SIMULACION %%%
 for k = 1:N
@@ -54,18 +58,19 @@ for k = 1:N
     xp1 = u(k)*cos(phi(k+1));
     yp1 = u(k)*sin(phi(k+1));
 
-    pose_xp(k) = xp1;
-    pose_yp(k) = yp1;
-
     x1(k+1) = x1(k) + xp1*ts; % Integral numérica (método de Euler)
     y1(k+1) = y1(k) + yp1*ts; % Integral numérica (método de Euler)
-
+    
+    pose_xp(k) = x1(k);
+    pose_yp(k) = y1(k);
+    
     % Posición del robot con reespecto a l punto de control
     hx(k+1) = x1(k+1);
     hy(k+1) = y1(k+1);
 end
 
 
+pose_thp = rad2deg(w);
 
 % a) Configuracion de escena
 
@@ -117,13 +122,13 @@ plot(t,w,'r','LineWidth',2),grid('on'),xlabel('Tiempo [s]'),ylabel('[rad/s]'),le
 
 figure;
 subplot(3,1,1)
-plot(t,pose_xp, 'g', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('m/s'),legend('pose:xp');
+plot(t,pose_xp, 'g', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('m'),legend('pose:xp');
 
 subplot(3,1,2)
-plot(t,pose_yp, 'b', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('m/s'),legend('pose:yp');
+plot(t,pose_yp, 'b', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('m'),legend('pose:yp');
 
 subplot(3,1,3)
-plot(t,pose_thp, 'r', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('rad/s'),legend('pose:thp');
+plot(t,pose_thp, 'r', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('Grados (°)'),legend('pose:thp');
 
 figure;
 subplot(2,1,1)
