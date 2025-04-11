@@ -1,36 +1,68 @@
+% Actividad 4.1 (Evaluación)
+% Oscar Ortiz Torres A01769292
+
 clear
 close all
 clc
 
 %%% VELOCIDADES DE REFERENCIA %%%
-trace_op = 2;
+op_tray = 2;
 
-if trace_op == 1
-    % Trayectoria 1
-    u = [ ones(1,20),         zeros(1,10), ones(1,20),          zeros(1,10),  ones(1,20),         zeros(1,10),  ones(1,20),         zeros(1,10)];
-    w = [zeros(1,20), (pi/2) * ones(1,10), zeros(1,20), (pi/2) * ones(1,10), zeros(1,20), (pi/2) * ones(1,10), zeros(1,20), (pi/2) * ones(1,10)];
-else
-    % Trayectoria 2
-    u = [zeros(1,10), ones(1,20),    zeros(1,10),             ones(1,20), zeros(1,10), ones(1,25), zeros(1,10), ones(1,30)];
-    w = [deg2rad(30)*ones(1,10), zeros(1,20)    deg2rad(130)*ones(1,10), zeros(1,20), -deg2rad(150)*ones(1,10), zeros(1,25), -deg2rad(70)*ones(1,10), zeros(1,30)];
+if op_tray == 1
+    ts = 0.01;
+    x_ref = 0:ts:5;
+    y_ref = 2 * sin(x_ref.^2);
+elseif op_tray == 2
+    ts = 0.01;
+    theta = 0:ts:(2*pi);
+    x_ref = 4 * cos(theta);
+    y_ref = 4 * sin(theta);
+elseif op_tray == 3
+    ts = 0.1;
+    x_ref = -6:ts:6;
+    y_ref = zeros(size(x_ref));
+    
+    for i = 1:length(x_ref)
+        x = x_ref(i);
+        if x <= 0
+            y_ref(i) = x;
+        elseif x <= 1
+            y_ref(i) = 3*x;
+        elseif x < 4
+            y_ref(i) = 3;
+        else
+            y_ref(i) = 2*x - 5;
+        end
+    end
 end
+
+dx = gradient(x_ref, ts);
+dy = gradient(y_ref, ts);
+u = sqrt(dx.^2 + dy.^2);
+theta = atan2(dy, dx);
+w = gradient(theta, ts);
 
 %%% TIEMPO %%%
 N = length(u);  % Muestras
 tf = N/10;        % Tiempo de simulación en segundos (s)
-ts = 0.1;       % Tiempo de muestreo en segundos (s)
 
 t = linspace(0,tf,N); % t = 0:ts:tf;    % Vector de tiempo
 
-
-%%% CONDICIONES INICIALES %%%
 x1 = zeros(1, N+1); % Posición en el centro del eje que une las ruedas (eje x) en metros
 y1 = zeros(1, N+1); % Posición en el centro del eje que una las ruedas (eje y) en metros
 phi = zeros(1, N+1); % Orientación del robot en radianes (rad)
+%%% CONDICIONES INICIALES %%%
 
-x1(1) = 0;  % Posición inicial eje x
-y1(1) = 0;  % Posición inicial eje y
-phi(1) = 0;  % Orientación inicial del robot
+if op_tray ~= 3
+    x1(1) = 0;  % Posición inicial eje x
+    y1(1) = 0;  % Posición inicial eje y
+    phi(1) = 0;  % Orientación inicial del robot
+else
+    x1(1) = x_ref(1);
+    y1(1) = y_ref(1);
+    phi(1) = theta(1);
+end 
+
 
 %%% PUNTO DE CONTROL %%%
 hx = zeros(1, N+1); % Posición en el punto de control (eje x) en metros (m)
@@ -38,13 +70,6 @@ hy = zeros(1, N+1); % Posición en el punto de control (eje y) en metros (m)
 
 hx(1) = x1(1);  % Posición en el punto de control del robot en el eje x
 hy(1) = y1(1);  % Posición en el punto de control del robot en el eje y
-
-
-l = 0.157;
-r = 0.05;
-
-w_l = (2*u - w*l)/(2*r);    % Velocidad motor izquierdo
-w_r = (2*u + w*l)/(2*r);    % Velocidad motor derecho
 
 pose_xp = zeros(1,N);
 pose_yp = zeros(1,N);
@@ -88,7 +113,7 @@ box on; % Mostrar contorno de ejes
 xlabel('x(m)'); ylabel('y(m)'); zlabel('z(m)'); % Etiqueta de los eje
 
 view([15 15]); % Orientacion de la figura
-axis([-3 11 -3 10 0 2]); % Ingresar limites minimos y maximos en los ejes x y z [minX maxX minY maxY minZ maxZ]
+axis([-10 10 -10 10 0 5]); % Ingresar limites minimos y maximos en los ejes x y z [minX maxX minY maxY minZ maxZ]
 
 % b) Graficar robots en la posicion inicial
 scale = 4;
@@ -131,9 +156,3 @@ plot(t,pose_yp, 'b', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('m'
 
 subplot(3,1,3)
 plot(t,pose_thp, 'r', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('Grados (°)'),legend('pose:thp');
-
-figure;
-subplot(1,2,1)
-stem(t,w_l, 'c', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('rad/s'),legend('W_L');
-subplot(1,2,2)
-stem(t,w_r, 'm', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('rad/s'),legend('W_R');
