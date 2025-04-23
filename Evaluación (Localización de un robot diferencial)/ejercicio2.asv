@@ -1,0 +1,38 @@
+clc
+close all
+clear all
+
+w_r = [4.582, 4.773, 5.291, 5.960, 6.490, -1.168, -1.364, 5.960, 5.291, 4.773, 4.582, 4.773, 5.291, 5.960, 6.490, ];
+w_l = [1.701, 2.353, 3.676, 4.856, 5.618, 13.735, 13.472, 4.856, 3.676, 2.353, 1.701, 2.353, 3.676, 4.856, 5.618, ];
+
+r = 0.1; % Radio de las ruedas
+l = 0.4; % Distancia entre ruedas (eje)
+
+u = r*((w_r + w_l) / 2);
+w = r*((w_r - w_l) / l);
+
+%%% TIEMPO %%%
+N = 120;  % Muestras
+tf = N/10;        % Tiempo de simulación en segundos (s)
+t = linspace(0,tf,N); % t = 0:ts:tf;    % Vector de tiempo
+ts = t(2)-t(1);
+
+%%% CONDICIONES INICIALES %%%
+x1 = zeros(1, N+1); % Posición en el centro del eje que une las ruedas (eje x) en metros
+y1 = zeros(1, N+1); % Posición en el centro del eje que una las ruedas (eje y) en metros
+phi = zeros(1, N+1); % Orientación del robot en radianes (rad)
+
+x1(1) = -1;  % Posición inicial eje x
+y1(1) = -5;  % Posición inicial eje y
+phi(1) = 0;  % Orientación inicial del robot
+
+%%% PUNTO DE CONTROL %%%
+hx = zeros(1, N+1); % Posición en el punto de control (eje x) en metros (m)
+hy = zeros(1, N+1); % Posición en el punto de control (eje y) en metros (m)
+
+hx(1) = x1(1);  % Posición en el punto de control del robot en el eje x
+hy(1) = y1(1);  % Posición en el punto de control del robot en el eje y
+
+pose_xp = zeros(1,N);
+pose_yp = zeros(1,N);
+pose_thp = zeros(1,N);

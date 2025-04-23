@@ -1,0 +1,91 @@
+clear
+close all
+clc
+
+%%% VELOCIDADES DE REFERENCIA %%%
+u = [ ones(1,10),       zeros(1,10), ones(1, 10), ];
+
+w = [zeros(1,10), (pi/3)*ones(1,10), zeros(1,10)];
+
+%%% TIEMPO %%%
+N = length(u);  % Muestras
+tf = N/10;        % Tiempo de simulación en segundos (s)
+ts = 1.0;       % Tiempo de muestreo en segundos (s)
+
+t = linspace(0,tf,N); % t = 0:ts:tf;    % Vector de tiempo
+
+
+%%% CONDICIONES INICIALES %%%
+x1 = zeros(1, N+1); % Posición en el centro del eje que une las ruedas (eje x) en metros
+y1 = zeros(1, N+1); % Posición en el centro del eje que una las ruedas (eje y) en metros
+phi = zeros(1, N+1); % Orientación del robot en radianes (rad)
+
+x1(1) = 0;  % Posición inicial eje x
+y1(1) = 0;  % Posición inicial eje y
+phi(1) = 0;  % Orientación inicial del robot
+
+%%% PUNTO DE CONTROL %%%
+hx = zeros(1, N+1); % Posición en el punto de control (eje x) en metros (m)
+hy = zeros(1, N+1); % Posición en el punto de control (eje y) en metros (m)
+
+hx(1) = x1(1);  % Posición en el punto de control del robot en el eje x
+hy(1) = y1(1);  % Posición en el punto de control del robot en el eje y
+
+
+l = 0.157;
+r = 0.05;
+
+w_l = (2*u - w*l)/(2*r);    % Velocidad motor izquierdo
+w_r = (2*u + w*l)/(2*r);    % Velocidad motor derecho
+
+pose_xp = zeros(1,N);
+pose_yp = zeros(1,N);
+pose_thp = zeros(1,N);
+
+%%% BUCLE DE SIMULACION %%%
+for k = 1:N
+    
+    phi(k+1) = phi(k) + w(k)*ts;    % Integral numérica (método de Euler)
+
+    %%% MODELO CINEMATICO %%%
+    xp1 = u(k)*cos(phi(k+1));
+    yp1 = u(k)*sin(phi(k+1));
+
+    x1(k+1) = x1(k) + xp1*ts; % Integral numérica (método de Euler)
+    y1(k+1) = y1(k) + yp1*ts; % Integral numérica (método de Euler)
+    
+    % Pose
+    pose_xp(k) = x1(k);
+    pose_yp(k) = y1(k);
+    pose_thp(k) = phi(k);
+
+    % Posición del robot con reespecto a l punto de control
+    hx(k+1) = x1(k+1);
+    hy(k+1) = y1(k+1);
+end
+
+pose_thp = rad2deg(pose_thp);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Graficas %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+graph=figure;  % Crear figura (Escena)
+set(graph,'position',sizeScreen); % Congigurar tamaño de la figura
+subplot(211)
+plot(t,u,'b','LineWidth',2),grid('on'),xlabel('Tiempo [s]'),ylabel('m/s'),legend('u');
+subplot(212)
+plot(t,w,'r','LineWidth',2),grid('on'),xlabel('Tiempo [s]'),ylabel('[rad/s]'),legend('w');
+
+figure;
+subplot(3,1,1)
+plot(t,pose_xp, 'g', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('m'),legend('pose:xp');
+
+subplot(3,1,2)
+plot(t,pose_yp, 'b', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('m'),legend('pose:yp');
+
+subplot(3,1,3)
+plot(t,pose_thp, 'r', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('Grados (°)'),legend('pose:thp');
+
+figure;
+subplot(1,2,1)
+stem(t,w_l, 'c', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('rad/s'),legend('W_L');
+subplot(1,2,2)
+stem(t,w_r, 'm', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('rad/s'),legend('W_R');
