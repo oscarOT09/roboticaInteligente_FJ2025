@@ -2,16 +2,17 @@ clear
 close all
 clc
 
+sim_flag = false;
+
 %%% VELOCIDADES DE REFERENCIA %%%
 u = [ones(1,10), zeros(1,10),ones(1,10), zeros(1,10),ones(1,10), zeros(1,10),ones(1,10), zeros(1,10),ones(1,10), zeros(1,10),ones(1,10), zeros(1,10)];
 
 w = [zeros(1,10), (pi/3)*ones(1,10),zeros(1,10), (pi/3)*ones(1,10),zeros(1,10), (pi/3)*ones(1,10),zeros(1,10), (pi/3)*ones(1,10),zeros(1,10), (pi/3)*ones(1,10),zeros(1,10), (pi/3)*ones(1,10)];
 
 %%% TIEMPO %%%
-N = length(u);  % Muestras
-tf = N/10;        % Tiempo de simulación en segundos (s)
-t = linspace(0,tf,N); % t = 0:ts:tf;    % Vector de tiempo
-ts = t(2)-t(1);
+ts = 0.1;
+N = 120;
+t = 0:ts:(N-1)*ts;  % esto garantiza que t(i) = i*ts exactamente
 
 %%% CONDICIONES INICIALES %%%
 x1 = zeros(1, N+1); % Posición en el centro del eje que une las ruedas (eje x) en metros
@@ -54,51 +55,51 @@ for k = 1:N
     hx(k+1) = x1(k+1);
     hy(k+1) = y1(k+1);
 end
-
+pose_xp = round(pose_xp, 10);
 pose_thp = rad2deg(pose_thp);
 
 %%% SIMULACION %%%
-%{
-% a) Configuracion de escena
-
-scene=figure;  % Crear figura (Escena)
-set(scene,'Color','white'); % Color del fondo de la escena
-set(gca,'FontWeight','bold') ;% Negrilla en los ejes y etiquetas
-sizeScreen=get(0,'ScreenSize'); % Retorna el tamaño de la pantalla del computador
-set(scene,'position',sizeScreen); % Congigurar tamaño de la figura
-camlight('headlight'); % Luz para la escena
-axis equal; % Establece la relación de aspecto para que las unidades de datos sean las mismas en todas las direcciones.
-grid on; % Mostrar líneas de cuadrícula en los ejes
-box on; % Mostrar contorno de ejes
-xlabel('x(m)'); ylabel('y(m)'); zlabel('z(m)'); % Etiqueta de los eje
-
-view([15 15]); % Orientacion de la figura
-axis([-5 5 -5 5 0 2]); % Ingresar limites minimos y maximos en los ejes x y z [minX maxX minY maxY minZ maxZ]
-
-% b) Graficar robots en la posicion inicial
-scale = 4;
-MobileRobot_5;
-H1=MobilePlot_4(x1(1),y1(1),phi(1),scale);hold on;
-
-% c) Graficar Trayectorias
-H2=plot3(hx(1),hy(1),0,'r','lineWidth',2);
-
-% d) Bucle de simulacion de movimiento del robot
-
-step=1; % pasos para simulacion
-
-for k=1:step:N
-
-    delete(H1);    
-    delete(H2);
+if sim_flag
+    % a) Configuracion de escena
     
-    H1=MobilePlot_4(x1(k),y1(k),phi(k),scale);
-    H2=plot3(hx(1:k),hy(1:k),zeros(1,k),'r','lineWidth',2);
+    scene=figure;  % Crear figura (Escena)
+    set(scene,'Color','white'); % Color del fondo de la escena
+    set(gca,'FontWeight','bold') ;% Negrilla en los ejes y etiquetas
+    sizeScreen=get(0,'ScreenSize'); % Retorna el tamaño de la pantalla del computador
+    set(scene,'position',sizeScreen); % Congigurar tamaño de la figura
+    camlight('headlight'); % Luz para la escena
+    axis equal; % Establece la relación de aspecto para que las unidades de datos sean las mismas en todas las direcciones.
+    grid on; % Mostrar líneas de cuadrícula en los ejes
+    box on; % Mostrar contorno de ejes
+    xlabel('x(m)'); ylabel('y(m)'); zlabel('z(m)'); % Etiqueta de los eje
     
-    pause(ts);
-
+    view([15 15]); % Orientacion de la figura
+    axis([-3 3 -6 0 0 2]); % Ingresar limites minimos y maximos en los ejes x y z [minX maxX minY maxY minZ maxZ]
+    
+    % b) Graficar robots en la posicion inicial
+    scale = 4;
+    MobileRobot_5;
+    H1=MobilePlot_4(x1(1),y1(1),phi(1),scale);hold on;
+    
+    % c) Graficar Trayectorias
+    H2=plot3(hx(1),hy(1),0,'r','lineWidth',2);
+    
+    % d) Bucle de simulacion de movimiento del robot
+    
+    step=1; % pasos para simulacion
+    
+    for k=1:step:N
+    
+        delete(H1);    
+        delete(H2);
+        
+        H1=MobilePlot_4(x1(k),y1(k),phi(k),scale);
+        H2=plot3(hx(1:k),hy(1:k),zeros(1,k),'r','lineWidth',2);
+        
+        pause(ts);
+    
+    end
 end
-%}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% Graficas %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 graph=figure;  % Crear figura (Escena)
@@ -116,3 +117,16 @@ plot(t,pose_yp, 'b', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('m'
 
 subplot(3,1,3)
 plot(t,pose_thp, 'r', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('Grados (°)'),legend('pose:thp');
+
+% Índices originales que deseas extraer
+indices_deseados = [1,11,21,31,41,51,61,71,81,91,101,111,120];
+
+% Crear nuevo índice del 0 al 12
+idx = (0:length(indices_deseados)-1)';
+
+% Crear tabla filtrada con los valores deseados
+tabla_pose = table(idx, pose_xp(indices_deseados)', pose_yp(indices_deseados)', pose_thp(indices_deseados)', ...
+    'VariableNames', {'Indice', 'x_pose', 'y_pose', 'th_pose'});
+
+% Mostrar tabla filtrada
+disp(tabla_pose);

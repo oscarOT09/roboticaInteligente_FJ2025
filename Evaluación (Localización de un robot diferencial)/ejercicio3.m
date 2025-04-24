@@ -1,35 +1,42 @@
-clc
+clear
 close all
-clear all
+clc
 
 sim_flag = true;
 
-w_r = [4.582, 4.773, 5.291, 5.960, 6.490, -1.168, -1.364, 5.960, 5.291, 4.773, 4.582, 4.773, 5.291, 5.960, 6.490, 6.686, 6.490, 5.960, 5.291, 4.773, 4.582];
-w_l = [1.701, 2.353, 3.676, 4.856, 5.618, 13.735, 13.472, 4.856, 3.676, 2.353, 1.701, 2.353, 3.676, 4.856, 5.618, 5.881, 5.618, 4.856, 3.676, 2.353, 1.701];
+%%% VELOCIDADES DE REFERENCIA %%%
+ts = 0.1;
+theta = 0:ts:(2*pi);
+x_ref = 20 * cos(theta);
+y_ref = 20 * sin(theta);
 
-r = 0.1; % Radio de las ruedas
-l = 0.4; % Distancia entre ruedas (eje)
+dx = gradient(x_ref, ts);
+dy = gradient(y_ref, ts);
+u = sqrt(dx.^2 + dy.^2);
+theta = unwrap(atan2(dy, dx));
+w = gradient(theta, ts);
 
-u_tmp = r*((w_r + w_l) / 2);
-w_tmp = r*((w_r - w_l) / l);
+% Velocidades de las ruedas
+l = 0.4;
+r = 0.1;
 
-u = repelem(u_tmp, 10);
-w = repelem(w_tmp, 10);
-
+w_l = (2*u - w*l)/(2*r); % (2*u - w*l)/(2*r);    % Velocidad motor izquierdo
+w_r = (2/r)*u - w_l; %(2*u + w*l)/(2*r);    % Velocidad motor derecho
 
 %%% TIEMPO %%%
-ts = 0.1;
-N = 210;
-t = 0:ts:(N-1)*ts;  % esto garantiza que t(i) = i*ts exactamente
+N = length(u);  % Muestras
+tf = ts * (N - 1);
+t = 0:ts:tf;
 
-%%% CONDICIONES INICIALES %%%
 x1 = zeros(1, N+1); % Posición en el centro del eje que une las ruedas (eje x) en metros
 y1 = zeros(1, N+1); % Posición en el centro del eje que una las ruedas (eje y) en metros
 phi = zeros(1, N+1); % Orientación del robot en radianes (rad)
+%%% CONDICIONES INICIALES %%%
 
-x1(1) = 0;  % Posición inicial eje x
-y1(1) = 0;  % Posición inicial eje y
-phi(1) = 0;  % Orientación inicial del robot
+x1(1) = 0;
+y1(1) = -20;
+phi(1) = 0;
+
 
 %%% PUNTO DE CONTROL %%%
 hx = zeros(1, N+1); % Posición en el punto de control (eje x) en metros (m)
@@ -42,7 +49,7 @@ pose_xp = zeros(1,N);
 pose_yp = zeros(1,N);
 pose_thp = zeros(1,N);
 
-%%% BUCLE DE CALCULOS %%%
+%%% BUCLE DE SIMULACION %%%
 for k = 1:N
     
     phi(k+1) = phi(k) + w(k)*ts;    % Integral numérica (método de Euler)
@@ -66,7 +73,6 @@ end
 
 pose_thp = rad2deg(pose_thp);
 
-%%% SIMULACION %%%
 if sim_flag
     % a) Configuracion de escena
     scene=figure;  % Crear figura (Escena)
@@ -81,7 +87,7 @@ if sim_flag
     xlabel('x(m)'); ylabel('y(m)'); zlabel('z(m)'); % Etiqueta de los eje
     
     view([15 15]); % Orientacion de la figura
-    axis([-5 5 -5 5 0 2]); % Ingresar limites minimos y maximos en los ejes x y z [minX maxX minY maxY minZ maxZ]
+    axis([-25 25 -25 25 0 5]); % Ingresar limites minimos y maximos en los ejes x y z [minX maxX minY maxY minZ maxZ]
     
     % b) Graficar robots en la posicion inicial
     scale = 4;
@@ -107,7 +113,6 @@ if sim_flag
     
     end
 end
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% Graficas %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 graph=figure;  % Crear figura (Escena)
 subplot(211)
@@ -125,29 +130,15 @@ plot(t,pose_yp, 'b', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('m'
 subplot(3,1,3)
 plot(t,pose_thp, 'r', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('Grados (°)'),legend('pose:thp');
 
-%%%
-% Índices originales que deseas extraer
-indices_deseados = [1,11,21,31,41,51,61,71,81,91,101,111,121,131,141,151,161,171,181,191,201,210];
-indices_deseados_1 = [1,12,22,32,42,52,62,72,82,92,102,112,122,132,142,152,162,172,182,192,202,211];
-%%%
-idx = (0:length(indices_deseados)-1)';
+figure;
+subplot(1,2,1)
+plot(t,w_l, 'c', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('rad/s'),legend('W_L');
+subplot(1,2,2)
+plot(t,w_r, 'm', 'LineWidth', 2), grid('on'),xlabel('Tiempo [s]'),ylabel('rad/s'),legend('W_R');
 
-% Agregar NaN al inicio de w_l y w_r
-w_l_ext = [NaN; w_l(:)];
-w_r_ext = [NaN; w_r(:)];
-
-u_ext = [NaN, u(:,:)];
-w_ext = [NaN, w(:,:)];
-
-% Tabla extendida con w_l y w_r
-tabla_velocidades = table(idx, ...
-                          u_ext(indices_deseados_1)', ...
-                          w_ext(indices_deseados_1)', ...
-                          w_r_ext, ...
-                          w_l_ext, ...
-                          pose_xp(indices_deseados)', ...
-                          pose_yp(indices_deseados)', ...
-                          pose_thp(indices_deseados)', ...
-    'VariableNames', {'t(s)', 'v (m/s)', 'w (rad/s)', 'w_R (rad/s)', 'w_L (rad/s)', 'x (m)', 'y (m)', 'th (°)'});
+% Mostrar tabla con índice, w_l y w_r
+idx = (1:length(w_l))';          % Índices como columna
+tabla_velocidades = table(idx, w_l(:), w_r(:), ...
+    'VariableNames', {'Indice', 'w_l', 'w_r'});
 
 disp(tabla_velocidades);
